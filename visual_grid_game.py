@@ -26,14 +26,33 @@ class VisualGridHuntGame:
             if pos_tuple != (0, 0) and pos_tuple not in self.walls:
                 self.food_positions.add(pos_tuple)
 
-        # Generate adversarial opponents
+         # Generate adversarial opponents
         self.opponents = []
         while len(self.opponents) < num_opponents:
             ox = random.randint(0, self.width - 1)
             oy = random.randint(0, self.height - 1)
             op_pos = [ox, oy]
-            if tuple(op_pos) != (0, 0) and tuple(op_pos) not in self.walls and tuple(op_pos) not in self.food_positions:
+            if (
+                tuple(op_pos) != (0, 0)
+                and tuple(op_pos) not in self.walls
+                and tuple(op_pos) not in self.food_positions
+            ):
                 self.opponents.append(op_pos)
+
+        # NEW: toxic traps set – avoid (0, 0), walls, and food
+        self.toxic_traps = set()
+        # you can choose any logic for how many traps; this is one example
+        desired_traps = max(3, self.width // 2)
+        while len(self.toxic_traps) < desired_traps:
+            tx = random.randint(0, self.width - 1)
+            ty = random.randint(0, self.height - 1)
+            pos_tuple = (tx, ty)
+            if (
+                pos_tuple != (0, 0)
+                and pos_tuple not in self.walls
+                and pos_tuple not in self.food_positions
+            ):
+                self.toxic_traps.add(pos_tuple)
 
         self.score = 0
         self.steps = 0
@@ -47,7 +66,9 @@ class VisualGridHuntGame:
             'hit_wall': tuple(self.agent_pos) in self.walls,
             'collision': self.collision,
             'score': self.score,
-            'remaining_food': len(self.food_positions)
+            'remaining_food': len(self.food_positions),
+            # NEW boolean sensor for traps
+            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps
         }
 
     def execute_action(self, action: str):
@@ -72,6 +93,10 @@ class VisualGridHuntGame:
         if tuple_pos in self.food_positions:
             self.food_positions.remove(tuple_pos)
             self.score += 20
+
+        # NEW: toxic trap penalty
+        if tuple_pos in self.toxic_traps:
+            self.score -= 15
 
         for op in self.opponents:
             move = random.choice(['Up', 'Down', 'Left', 'Right', 'Stay'])
@@ -152,7 +177,18 @@ class GridGameGUI:
             y1 = (self.env.height - 1 - oy) * self.cell_size + offset
             self.canvas.create_rectangle(x1, y1, x1 + self.cell_size * 0.6, y1 + self.cell_size * 0.6, fill="#990000",
                                          outline="#7a0000")
-
+        # NEW: draw toxic traps as purple shapes
+        for tx, ty in self.env.toxic_traps:
+            offset = self.cell_size * 0.2
+            x1 = tx * self.cell_size + offset
+            y1 = (self.env.height - 1 - ty) * self.cell_size + offset
+            x2 = x1 + self.cell_size * 0.6
+            y2 = y1 + self.cell_size * 0.6
+            self.canvas.create_oval(
+                x1, y1, x2, y2,
+                fill="#8b5cf6",  # purple
+                outline="#6d28d9"
+            )
         ax, ay = self.env.agent_pos
         offset = self.cell_size * 0.15
         x1 = ax * self.cell_size + offset
