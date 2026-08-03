@@ -1,12 +1,39 @@
-# agent.py
-class GreedyGridAgent:
-    """A simple agent that tries to move around systematically to clear the grid."""
+import random
+
+
+class SimpleReflexAgent:
+
+    def sense_and_act(self, percept):
+
+        if percept["food_here"]:
+            return "Stay"
+
+        if percept["wall_ahead"]:
+            return "Left"
+
+        return "Up"
+
+
+class ModelBasedAgent:
 
     def __init__(self):
-        self.actions_pool = ['Up', 'Down', 'Left', 'Right']
+        self.last_action = None
+        self.stuck_counter = 0
 
-    def sense_and_act(self, percept: dict) -> str:
-        # If standing directly on food, or just wander / move towards coordinates
-        pos = percept['agent_pos']
-        # Simple heuristic or fallback random sweep
-        return random.choice(self.actions_pool)
+    def sense_and_act(self, percept):
+
+        if percept["food_here"]:
+            return "Stay"
+
+        if percept["wall_ahead"]:
+
+            if self.last_action == "Left":
+                action = "Right"
+            else:
+                action = "Left"
+
+            self.last_action = action
+            return action
+
+        self.last_action = "Up"
+        return "Up"
